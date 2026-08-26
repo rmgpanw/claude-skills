@@ -13,6 +13,10 @@ import argparse, json, re, sys, time, urllib.parse, urllib.request
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+if sys.version_info < (3, 7):
+    sys.exit(f"Needs Python 3.7+, found {sys.version_info[0]}.{sys.version_info[1]}. "
+             "Standard library only - no packages to install.")
+
 sys.path.insert(0, str(Path(__file__).parent))
 from zot_normalise import normalise
 

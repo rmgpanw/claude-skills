@@ -8,6 +8,13 @@ description: Add references to a Zotero library from PubMed via the Zotero Web A
 Loads a reference list (usually a manuscript bibliography) into a Zotero library,
 preferring PubMed metadata over publisher metadata.
 
+## Requirements
+
+Python 3.7+, standard library only - nothing to `pip install`. If `python3` is
+missing, that is an environment problem, not a skill problem: on macOS it arrives
+with `xcode-select --install`; on Linux use the distro package. Do not attempt to
+work around a missing interpreter.
+
 ## Credentials
 
 - API key: `~/.config/zotero/api_key` (mode 600), numeric user ID: `~/.config/zotero/user_id`.

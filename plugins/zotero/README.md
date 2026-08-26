@@ -54,7 +54,9 @@ python3 skills/zotero-refs/scripts/zotero_pubmed.py check --library groups/<id>
 library you intend to use. Every command that touches a library runs this first and
 exits with instructions rather than failing later or prompting.
 
-Requires Python 3 — standard library only, nothing to install.
+Requires **Python 3.7+**, standard library only — nothing to `pip install`.
+
+If `python3` is missing: macOS `xcode-select --install`, Linux use your distro package.
 
 ## Usage
 
