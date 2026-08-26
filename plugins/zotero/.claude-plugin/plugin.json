@@ -1,0 +1,10 @@
+{
+  "name": "zotero",
+  "description": "Add references to a Zotero library from PubMed, matching the metadata the Zotero browser connector produces.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Alasdair Warwick",
+    "url": "https://github.com/rmgpanw"
+  },
+  "keywords": ["zotero", "pubmed", "references", "bibliography", "citations"]
+}

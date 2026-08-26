@@ -1,0 +1,18 @@
+{
+  "name": "claude-skills",
+  "owner": {
+    "name": "Alasdair Warwick",
+    "url": "https://github.com/rmgpanw"
+  },
+  "metadata": {
+    "description": "Personal Claude Code plugins and skills.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "zotero",
+      "source": "./plugins/zotero",
+      "description": "Add references to a Zotero library from PubMed via the Zotero Web API."
+    }
+  ]
+}
