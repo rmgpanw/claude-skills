@@ -5,23 +5,40 @@ they can be installed on any machine.
 
 ## Install
 
-Run these once per machine, inside Claude Code:
+Run these once per machine. The `claude` CLI form works everywhere:
 
+```bash
+claude plugin marketplace add rmgpanw/claude-skills
+claude plugin install zotero@claude-skills --scope user
 ```
-/plugin marketplace add rmgpanw/claude-skills
-/plugin install zotero@claude-skills
-```
+
+Inside an interactive Claude Code terminal session you can instead use the slash
+commands `/plugin marketplace add rmgpanw/claude-skills` and
+`/plugin install zotero@claude-skills`. **These are not available in every
+environment** — the VS Code extension, for one, reports `/plugin isn't available
+in this environment`. Use the CLI form if in doubt.
 
 The first command registers this repo as a plugin *marketplace* — an index of what
-is available here. The second installs a plugin from it. After that the skills load
-automatically whenever a request matches them; there is nothing to invoke by hand
-and no need to reference this repo again.
+is available here. The second installs a plugin from it. Restart Claude Code
+afterwards; plugins load at session start.
 
-To pick up later changes:
+After that the skills load automatically whenever a request matches them. There is
+nothing to invoke by hand and no need to reference this repo again.
 
+## Updating
+
+Two separate steps — refreshing the marketplace index does **not** upgrade an
+already-installed plugin:
+
+```bash
+claude plugin marketplace update claude-skills     # refresh the index
+claude plugin update zotero@claude-skills          # upgrade the plugin itself
 ```
-/plugin marketplace update claude-skills
-```
+
+The plugin name must be fully qualified as `plugin@marketplace`; the bare name
+fails with `Plugin "zotero" not found`. Restart Claude Code to apply.
+
+Check what is installed with `claude plugin list`.
 
 ## Plugins
 
