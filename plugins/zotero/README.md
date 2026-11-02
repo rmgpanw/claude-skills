@@ -64,6 +64,8 @@ Just ask, in any repo:
 
 > add the references from `manuscript.md` to my *Reading Group* Zotero library
 
+> add the new citations in `manuscript.qmd` to `references.bib`
+
 Claude loads the skill automatically. Items created through the API appear in the
 Zotero desktop app only after a **sync**.
 
@@ -75,6 +77,7 @@ fetch    → PubMed records (XML, plus .nbib for provenance)
 convert  → Zotero items, normalised
 dedupe   → drop anything already in the target library
 create   → write them
+sync-bib → report on a .bib against the library; append what is missing with --write
 ```
 
 ## What it handles
@@ -89,6 +92,10 @@ create   → write them
   fall back to Crossref, or become a `computerProgram` item for software, with the
   source noted in `Extra`.
 - **Duplicates**, by DOI and PMID, against live library state.
+- **Existing `.bib` files** are appended to, never rewritten. Keys that differ from
+  the library are reported, because a full export would break those citations. Name
+  formatting is left to your CSL style; journal abbreviations are added as
+  `shortjournal`, since a style cannot create them.
 
 ## Known limitation
 

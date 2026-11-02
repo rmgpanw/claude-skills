@@ -1,6 +1,6 @@
 ---
 name: zotero-refs
-description: Add references to a Zotero library from PubMed via the Zotero Web API - resolve DOIs/citations to PMIDs, convert PubMed records to Zotero items matching what the browser connector produces, dedupe against the target library, and create them. Use when asked to add, import, or sync references or a bibliography into Zotero, or to get a manuscript's reference list into a Zotero group/collection.
+description: Add references to a Zotero library from PubMed via the Zotero Web API - resolve DOIs/citations to PMIDs, convert PubMed records to Zotero items matching what the browser connector produces, dedupe against the target library, and create them; then add new entries to an existing .bib without rewriting it. Use when asked to add, import, or sync references or a bibliography into Zotero, to get a manuscript's reference list into a Zotero group/collection, or to export or refresh a .bib from Zotero.
 ---
 
 # Adding references to Zotero from PubMed
@@ -112,9 +112,47 @@ normalisation rules above; do it whenever working against an unfamiliar library.
   collective name while the journal names all authors; PubMed has
   `Davey Smith, George` where bmj.com has `Smith, George Davey`.
 
+## Getting references into a .bib
+
+Once items are in the library, add them to the project's `.bib` with `sync-bib`.
+It reports by default and changes nothing until `--write`, which only appends:
+
+    python3 scripts/zotero_pubmed.py sync-bib --library groups/123 --bib refs.bib --cited manuscript.qmd
+    python3 scripts/zotero_pubmed.py sync-bib --library groups/123 --bib refs.bib --cited manuscript.qmd --write
+
+Do not assume the user must export from the desktop app, or that Better BibTeX is
+installed: the Web API serves Zotero's own BibTeX export (`format=bibtex`).
+
+**Do not overwrite an existing `.bib` with a library export.** A project's file is
+often a subset of the library, and its keys may have drifted. A pinned or
+Better BibTeX key can differ from the key Zotero generates, and an export silently
+breaks every citation that used the old one. `sync-bib` lists these rather than
+changing them. Check that list and the "in .bib, not in library" list before
+concluding the two are in step.
+
+**What belongs where:**
+
+- Formatting belongs to the CSL style, including whether names become initials. New
+  entries keep Zotero's full names by default.
+- A journal abbreviation is data. A style can select the short form but cannot
+  create one, and Zotero's BibTeX export omits it, so `sync-bib` adds `shortjournal`
+  from `journalAbbreviation`.
+- `--initials` is only for a file that already stores names as `Davies, NM`. Such
+  files usually depend on `initialize="false"` in the CSL, because otherwise `NM`
+  is read as a given name and cut to `N`. New full names then print in full
+  (`Hu Dan-Ning`). If `sync-bib` warns about this, read the CSL before choosing.
+- Lower-case family particles are braced (`{van Norren}, Dirk`) so citeproc does not
+  print `Norren D van`.
+- Abstracts, ISSNs and similar fields are dropped; `--keep abstract,month` retains
+  them. `url` is dropped only when the entry has a DOI.
+
+**Verify in the rendered reference list**, not just by key. A citation can resolve
+and still print wrongly. Also check the project's build notices a changed `.bib`:
+a build tool may not track it as a dependency, and a re-run then renders nothing.
+
 ## What the Web API cannot do
 
-It accepts **Zotero JSON only** - not BibTeX, RIS, or `.nbib`. Those import only
+For writes it accepts **Zotero JSON only** - not BibTeX, RIS, or `.nbib`. Those import only
 through the desktop client (File > Import), which targets whatever library is
 selected in the UI and cannot be aimed at a group programmatically, and skips no
 duplicates. Convert in the script instead. Saving the `.nbib` alongside is still

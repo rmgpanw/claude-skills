@@ -8,6 +8,8 @@ Subcommands:
   dedupe   --items items.json --library groups/123 --out todo.json
   create   --items todo.json --library groups/123
   audit    --ids ids.json --library groups/123
+  sync-bib --library groups/123 --bib refs.bib [--cited a.qmd ...] [--keys k ...]
+           [--initials] [--keep abstract,month] [--write]
 """
 import argparse, json, re, sys, time, urllib.parse, urllib.request
 import xml.etree.ElementTree as ET
@@ -19,6 +21,7 @@ if sys.version_info < (3, 7):
 
 sys.path.insert(0, str(Path(__file__).parent))
 from zot_normalise import normalise
+import zot_bib
 
 API = "https://api.zotero.org"
 EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
@@ -244,6 +247,78 @@ def fetch_library(lib):
         start += 100
 
 
+def fetch_bibtex(lib):
+    """Zotero's own BibTeX export, one request per 100 items.
+
+    Keys are made unique within a request only, so the caller must treat a key
+    repeated across pages as ambiguous.
+    """
+    out, start = "", 0
+    while True:
+        url = f"{API}/{lib}/items/top?" + urllib.parse.urlencode(
+            {"format": "bibtex", "limit": 100, "start": start})
+        st, body, _ = http(url, headers={"Zotero-API-Key": key()})
+        if st != 200:
+            sys.exit(f"Zotero GET {st}: {body[:300]}")
+        if not body.strip():
+            return out
+        out += body + "\n"
+        start += 100
+
+
+def sync_bib(a):
+    bib_path = Path(a.bib)
+    bib = zot_bib.parse_bib(bib_path.read_text(encoding="utf8"))
+    cited = set(a.keys or [])
+    for f in a.cited or []:
+        cited |= zot_bib.cited_keys(Path(f).read_text(encoding="utf8"))
+    zot = zot_bib.parse_bib(fetch_bibtex(a.library))
+    r = zot_bib.plan(bib, zot, cited)
+    print(f".bib has {len(bib)}; library has {len(zot)}; {len(cited)} keys checked")
+
+    for k, why in r["blocked"]:
+        print(f"  NOT ADDED {k}: {why}")
+    for k in r["unknown"]:
+        print(f"  CITED BUT IN NEITHER: {k}")
+    if r["renamed"]:
+        print(f"  {len(r['renamed'])} entries have a different key in the library "
+              "(left alone; a full export would break these citations):")
+        for old, new in r["renamed"]:
+            print(f"    {old} -> {new}")
+    if r["not_in_library"]:
+        print("  in .bib, not in library:", ", ".join(r["not_in_library"]))
+
+    # Only the journal abbreviation is added: a CSL style can select the short
+    # form but cannot create one, and Zotero's BibTeX export omits it.
+    abbr = {}
+    if r["add"]:
+        for i in fetch_library(a.library):
+            d = i["data"]
+            short = d.get("journalAbbreviation")
+            if short:
+                abbr[(d.get("DOI") or "").lower().strip() or
+                     zot_bib.norm_title(d.get("title"))] = short
+    keep = set(filter(None, (a.keep or "").split(",")))
+    text = [zot_bib.format_entry(e, abbr.get(e["doi"] or e["title"]),
+                                 a.initials, keep) for e in r["add"]]
+    for e, t in zip(r["add"], text):
+        print(f"  add {e['key']}")
+        if "journal" in dict(e["fields"]) and "shortjournal" not in t:
+            print(f"    WARNING no journal abbreviation for {e['key']}")
+    if not a.initials and zot_bib.uses_bare_initials(bib):
+        print("  WARNING this .bib stores initials (`Davies, NM`) but new entries "
+              "keep full names; check the CSL's initialize setting, or use --initials")
+
+    if text and a.write:
+        with bib_path.open("a", encoding="utf8") as fh:
+            fh.write("\n" + "\n".join(text))
+        print(f"appended {len(text)} to {bib_path}")
+    elif text:
+        print(f"report only: rerun with --write to append {len(text)}")
+    if r["unknown"] or r["blocked"]:
+        sys.exit(1)
+
+
 def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -253,6 +328,11 @@ def main():
     p = sub.add_parser("dedupe");  p.add_argument("--items", required=True); p.add_argument("--library", required=True); p.add_argument("--out", required=True)
     p = sub.add_parser("create");  p.add_argument("--items", required=True); p.add_argument("--library", required=True)
     p = sub.add_parser("groups")
+    p = sub.add_parser("sync-bib")
+    p.add_argument("--library", required=True); p.add_argument("--bib", required=True)
+    p.add_argument("--cited", nargs="*"); p.add_argument("--keys", nargs="*")
+    p.add_argument("--initials", action="store_true"); p.add_argument("--keep")
+    p.add_argument("--write", action="store_true")
     p = sub.add_parser("check"); p.add_argument("--library")
     a = ap.parse_args()
 
@@ -267,6 +347,10 @@ def main():
         uid = user_id()
         for g in zget(f"users/{uid}", "groups", limit=100):
             print(g["id"], "|", g["data"]["name"])
+
+    elif a.cmd == "sync-bib":
+        preflight()
+        sync_bib(a)
 
     elif a.cmd == "resolve":
         entries = json.load(open(a.inp))
